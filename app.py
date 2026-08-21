@@ -36,27 +36,24 @@ SESSION.headers.update({
 # DOWNLOAD DATA
 # ============================================================
 
-def yahoo_symbol(symbol):
-    return symbol.replace(".", "-")
-
-
 @st.cache_data(ttl=60)
-def download_history(symbol, days=3):
+def download_history(symbol, interval="15m", days=3):
 
     end_ts = int(time.time())
+
     start_ts = int(
         (datetime.utcnow() - timedelta(days=days)).timestamp()
     )
 
     url = (
         "https://query1.finance.yahoo.com/v8/finance/chart/"
-        + yahoo_symbol(symbol)
+        + symbol.replace(".", "-")
     )
 
     params = {
         "period1": start_ts,
         "period2": end_ts,
-        "interval": "15m",
+        "interval": interval,
         "events": "history",
         "includeAdjustedClose": "true"
     }
@@ -208,7 +205,7 @@ def add_indicators(df):
 # CREATE CHART
 # ============================================================
 
-def create_chart(df, symbol):
+def create_chart(df, symbol, interval):
 
     fig, (ax1, ax2) = plt.subplots(
         2,
@@ -234,7 +231,6 @@ def create_chart(df, symbol):
             else "red"
         )
 
-        # High-Low wick
         ax1.vlines(
             i,
             row["Low"],
@@ -243,7 +239,6 @@ def create_chart(df, symbol):
             linewidth=1
         )
 
-        # Candle body
         ax1.add_patch(
             Rectangle(
                 (
@@ -258,7 +253,7 @@ def create_chart(df, symbol):
         )
 
     # --------------------------------------------------------
-    # EMA
+    # EMA20
     # --------------------------------------------------------
 
     ax1.plot(
@@ -273,7 +268,7 @@ def create_chart(df, symbol):
     # --------------------------------------------------------
 
     ax1.set_title(
-        symbol,
+        "{} - {}".format(symbol, interval),
         fontsize=16,
         fontweight="bold"
     )
@@ -300,7 +295,6 @@ def create_chart(df, symbol):
         linewidth=1.5
     )
 
-    # Green above 60
     ax2.fill_between(
         x,
         60,
@@ -310,7 +304,6 @@ def create_chart(df, symbol):
         alpha=0.25
     )
 
-    # Red below 40
     ax2.fill_between(
         x,
         df["RSI14"],
@@ -320,7 +313,6 @@ def create_chart(df, symbol):
         alpha=0.25
     )
 
-    # RSI levels
     ax2.axhline(
         60,
         linestyle="--",
@@ -380,26 +372,80 @@ def create_chart(df, symbol):
 
 
 # ============================================================
-# STREAMLIT USER INTERFACE
+# STREAMLIT PAGE
 # ============================================================
 
 st.set_page_config(
-    page_title="Stock Chart",
+    page_title="US Stock Chart",
     layout="wide"
 )
 
 st.title("US Stock Chart")
 
-col1, col2 = st.columns([4, 1])
+
+# ============================================================
+# USER INPUT
+# ============================================================
+
+col1, col2, col3, col4 = st.columns(
+    [3, 2, 2, 1]
+)
+
 
 with col1:
 
     symbol = st.text_input(
-        "Enter Stock Symbol",
+        "Stock Symbol",
         "MRVL"
     ).strip().upper()
 
+
 with col2:
+
+    interval = st.selectbox(
+        "Interval",
+        options=[
+            "1m",
+            "5m",
+            "15m",
+            "30m",
+            "60m",
+            "1h",
+            "1d"
+        ],
+        index=2,
+        format_func=lambda x: {
+            "1m": "1 Minute",
+            "5m": "5 Minutes",
+            "15m": "15 Minutes",
+            "30m": "30 Minutes",
+            "60m": "60 Minutes",
+            "1h": "1 Hour",
+            "1d": "Daily"
+        }[x]
+    )
+
+
+with col3:
+
+    days = st.selectbox(
+        "Days",
+        options=[
+            1,
+            2,
+            3,
+            5,
+            7,
+            10,
+            15,
+            30,
+            60
+        ],
+        index=2
+    )
+
+
+with col4:
 
     st.write("")
 
@@ -410,7 +456,7 @@ with col2:
 
 
 # ============================================================
-# CHART BUTTON
+# DISPLAY CHART
 # ============================================================
 
 if chart_button:
@@ -424,20 +470,25 @@ if chart_button:
     else:
 
         with st.spinner(
-            "Downloading data..."
+            "Downloading {} data...".format(
+                symbol
+            )
         ):
 
             df = download_history(
                 symbol,
-                days=3
+                interval=interval,
+                days=days
             )
 
         if df is None:
 
             st.error(
-                "Could not download data for "
-                + symbol
-                + ". Please check the symbol."
+                "Could not download data for {}. "
+                "Check the symbol, interval and "
+                "available Yahoo Finance history.".format(
+                    symbol
+                )
             )
 
         else:
@@ -446,7 +497,8 @@ if chart_button:
 
             fig = create_chart(
                 df,
-                symbol
+                symbol,
+                interval
             )
 
             st.pyplot(
