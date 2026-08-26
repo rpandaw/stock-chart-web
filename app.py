@@ -37,7 +37,7 @@ SESSION.headers.update({
 # ============================================================
 
 @st.cache_data(ttl=60)
-def download_history(symbol, interval="15m", days=3):
+def download_history(symbol, interval="15m", days=5):
 
     end_ts = int(time.time())
 
@@ -384,6 +384,20 @@ st.title("US Stock Chart")
 
 
 # ============================================================
+# DEFAULT DAYS FOR EACH INTERVAL
+# ============================================================
+
+DEFAULT_DAYS = {
+    "1m": 1,
+    "5m": 3,
+    "15m": 5,
+    "30m": 7,
+    "1h": 15,
+    "1d": 120
+}
+
+
+# ============================================================
 # USER INPUT
 # ============================================================
 
@@ -409,7 +423,6 @@ with col2:
             "5m",
             "15m",
             "30m",
-            "60m",
             "1h",
             "1d"
         ],
@@ -419,11 +432,27 @@ with col2:
             "5m": "5 Minutes",
             "15m": "15 Minutes",
             "30m": "30 Minutes",
-            "60m": "60 Minutes",
             "1h": "1 Hour",
             "1d": "Daily"
         }[x]
     )
+
+
+# ============================================================
+# AUTOMATIC DEFAULT DAYS
+# ============================================================
+
+if "last_interval" not in st.session_state:
+
+    st.session_state.last_interval = interval
+
+    st.session_state.days = DEFAULT_DAYS[interval]
+
+elif st.session_state.last_interval != interval:
+
+    st.session_state.last_interval = interval
+
+    st.session_state.days = DEFAULT_DAYS[interval]
 
 
 with col3:
@@ -443,7 +472,7 @@ with col3:
             90,
             120
         ],
-        index=2
+        key="days"
     )
 
 
