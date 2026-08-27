@@ -282,6 +282,13 @@ def create_chart(df, symbol, interval):
 
     ax1.set_ylabel("Price")
 
+    ax1.yaxis.tick_right()
+    ax1.yaxis.set_label_position("right")
+
+    ax2.yaxis.tick_right()
+    ax2.yaxis.set_label_position("right")
+
+
     ax1.legend(
         loc="upper left"
     )
