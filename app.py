@@ -263,6 +263,13 @@ def create_chart(df, symbol, interval):
         linewidth=1.5
     )
 
+    ax1.plot(
+        x,
+        df["EMA50"],
+        label="EMA50",
+        linewidth=1.5
+    )
+
     # --------------------------------------------------------
     # PRICE CHART
     # --------------------------------------------------------
